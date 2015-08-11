@@ -12,6 +12,7 @@ import (
 	"time"
 )
 
+// Server represents a http server serving the photowall and upload functionality
 type Server struct {
 	*gin.Engine
 	wall            wall.Photowall
@@ -47,6 +48,7 @@ func (s Server) validExtension(name string) (string, bool) {
 
 }
 
+// NewServer creates a new Server instance
 func NewServer(wall wall.Photowall, staticDir string, storageDir string, maxSize int64, validExtensions string) *Server {
 	s := &Server{}
 	s.wall = wall
@@ -69,18 +71,18 @@ func NewServer(wall wall.Photowall, staticDir string, storageDir string, maxSize
 	return s
 }
 
-type ExportPhoto struct {
+type exportPhoto struct {
 	Name      string `json:"name"`
 	Width     int    `json:"width"`
 	Height    int    `json:"height"`
 	CreatedAt string `json:"created_at"`
 }
 
-func exportPhotos(ps wall.Photos) []ExportPhoto {
-	var export []ExportPhoto
+func exportPhotos(ps wall.Photos) []exportPhoto {
+	var export []exportPhoto
 	wall.SortPhotos(ps)
 	for _, p := range ps {
-		export = append(export, ExportPhoto{
+		export = append(export, exportPhoto{
 			Name:      filepath.Base(p.Name()),
 			Width:     p.Bounds().Size().X,
 			Height:    p.Bounds().Size().Y,
