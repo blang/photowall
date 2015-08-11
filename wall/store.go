@@ -1,4 +1,4 @@
-package photowall
+package wall
 
 import (
 	"crypto/sha1"
