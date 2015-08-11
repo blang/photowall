@@ -64,7 +64,10 @@ func (r Resizer) Process(p Photo) (Photo, error) {
 	}
 	defer out.Close()
 	// write new image to file
-	jpeg.Encode(out, m, nil)
+	err = jpeg.Encode(out, m, nil)
+	if err != nil {
+		return nil, err
+	}
 	newdims := m.Bounds().Size()
 	os.Remove(p.Name())
 	return NewPhoto(out.Name(), newdims.X, newdims.Y, "jpg", p.CreatedAt()), nil
