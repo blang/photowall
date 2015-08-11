@@ -1,7 +1,7 @@
 package web
 
 import (
-	"github.com/blang/photowall/photowall"
+	"github.com/blang/photowall/wall"
 	"github.com/gin-gonic/gin"
 	"io"
 	"io/ioutil"
@@ -14,7 +14,7 @@ import (
 
 type Server struct {
 	*gin.Engine
-	wall            photowall.Photowall
+	wall            wall.Photowall
 	maxSize         int64
 	validExtensions map[string]struct{}
 	storageDir      string
@@ -47,7 +47,7 @@ func (s Server) validExtension(name string) (string, bool) {
 
 }
 
-func NewServer(wall photowall.Photowall, staticDir string, storageDir string, maxSize int64, validExtensions string) *Server {
+func NewServer(wall wall.Photowall, staticDir string, storageDir string, maxSize int64, validExtensions string) *Server {
 	s := &Server{}
 	s.wall = wall
 	s.maxSize = maxSize
@@ -61,6 +61,7 @@ func NewServer(wall photowall.Photowall, staticDir string, storageDir string, ma
 	router.Static("/assets", filepath.Join(staticDir, "/assets"))
 	router.StaticFile("/wall", filepath.Join(staticDir, "/wall.html"))
 	router.StaticFile("/admin", filepath.Join(staticDir, "/admin.html"))
+	router.StaticFile("/success", filepath.Join(staticDir, "/success.html"))
 	router.StaticFile("/", filepath.Join(staticDir, "/upload.html"))
 	router.POST("/api/upload", s.handleUpload)
 	router.GET("/api/wall", s.handleAPIWall)
@@ -75,12 +76,12 @@ type ExportPhoto struct {
 	CreatedAt string `json:"created_at"`
 }
 
-func exportPhotos(ps photowall.Photos) []ExportPhoto {
+func exportPhotos(ps wall.Photos) []ExportPhoto {
 	var export []ExportPhoto
-	photowall.SortPhotos(ps)
+	wall.SortPhotos(ps)
 	for _, p := range ps {
 		export = append(export, ExportPhoto{
-			Name:      filepath.Join("/imgs/", filepath.Base(p.Name())),
+			Name:      filepath.Base(p.Name()),
 			Width:     p.Bounds().Size().X,
 			Height:    p.Bounds().Size().Y,
 			CreatedAt: p.CreatedAt().String(),
@@ -134,6 +135,5 @@ func (s Server) handleUpload(c *gin.Context) {
 
 	s.wall.AddPhotoFromFile(f.Name(), time.Now())
 
-	http.Redirect(c.Writer, c.Request, "/success.html", http.StatusOK)
-	// c.HTML(http.StatusOK, "success.tmpl", gin.H{})
+	http.Redirect(c.Writer, c.Request, "/success", http.StatusFound)
 }
