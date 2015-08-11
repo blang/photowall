@@ -20,9 +20,10 @@ type Server struct {
 	storageDir      string
 }
 
-func buildValidExtensions(extensions []string) map[string]struct{} {
+func buildValidExtensions(extensions string) map[string]struct{} {
 	extMap := make(map[string]struct{})
-	for _, extstr := range extensions {
+	exts := strings.Split(extensions, ",")
+	for _, extstr := range exts {
 		extstr = strings.ToLower(strings.TrimSpace(extstr))
 		extstr = strings.Replace(extstr, ".", "", -1)
 		if extstr != "" {
@@ -46,7 +47,7 @@ func (s Server) validExtension(name string) (string, bool) {
 
 }
 
-func NewServer(wall photowall.Photowall, staticDir string, storageDir string, maxSize int64, validExtensions []string) *Server {
+func NewServer(wall photowall.Photowall, staticDir string, storageDir string, maxSize int64, validExtensions string) *Server {
 	s := &Server{}
 	s.wall = wall
 	s.maxSize = maxSize
