@@ -21,8 +21,18 @@ func (f ProcessorFunc) Process(p Photo) (Photo, error) {
 // Observer gets notified if something changes on the wall
 type Observer func(p Photo)
 
-// Photowall represents a collection of photos, create with Create
-type Photowall struct {
+// Photowall represents a wall of photos
+type Photowall interface {
+	AddPhotoFromFile(name string, createdAt time.Time)
+	AddPhoto(p Photo)
+	RemovePhoto(photo Photo)
+	OnAdd(o Observer)
+	OnRemove(o Observer)
+	Photos() Photos
+}
+
+// Wall represents a collection of photos, create with Create
+type Wall struct {
 	processors      []Processor
 	photos          Photos
 	mutexPhotos     *sync.RWMutex
@@ -37,8 +47,8 @@ type Photowall struct {
 //			NewResizer(1920, 1080),
 //			NewStore("./storage"),
 // 	})
-func Create() *Photowall {
-	return &Photowall{
+func Create() *Wall {
+	return &Wall{
 		mutexPhotos: &sync.RWMutex{},
 		processors: []Processor{
 			NewResizer(1920, 1080),
@@ -48,34 +58,34 @@ func Create() *Photowall {
 }
 
 // SetProcessors sets the list of registered processors
-func (w *Photowall) SetProcessors(ps []Processor) {
+func (w *Wall) SetProcessors(ps []Processor) {
 	w.processors = ps
 }
 
 // Processors returns the list of registered processors
-func (w *Photowall) Processors() []Processor {
+func (w *Wall) Processors() []Processor {
 	return w.processors
 }
 
 // AddPhotoFromFile adds a new photo to the wall
-func (w *Photowall) AddPhotoFromFile(name string, createdAt time.Time) {
+func (w *Wall) AddPhotoFromFile(name string, createdAt time.Time) {
 	p := NewPhoto(name, 0, 0, "", createdAt)
 	go w.process(p)
 }
 
 // AddPhoto adds a new photo to the wall
-func (w *Photowall) AddPhoto(p Photo) {
+func (w *Wall) AddPhoto(p Photo) {
 	go w.process(p)
 }
 
-func (w *Photowall) storePhoto(p Photo) {
+func (w *Wall) storePhoto(p Photo) {
 	w.mutexPhotos.Lock()
 	w.photos = append(w.photos, p)
 	w.mutexPhotos.Unlock()
 	w.notifyAdd(p)
 }
 
-func (w *Photowall) process(photo Photo) {
+func (w *Wall) process(photo Photo) {
 	var err error
 	for _, p := range w.processors {
 		photo, err = p.Process(photo)
@@ -90,7 +100,7 @@ func (w *Photowall) process(photo Photo) {
 }
 
 // RemovePhoto removes a photo from the wall
-func (w *Photowall) RemovePhoto(photo Photo) {
+func (w *Wall) RemovePhoto(photo Photo) {
 	w.mutexPhotos.Lock()
 	var index = -1
 	for i, p := range w.photos {
@@ -106,30 +116,30 @@ func (w *Photowall) RemovePhoto(photo Photo) {
 	w.notifyRemove(photo)
 }
 
-func (w *Photowall) notifyAdd(p Photo) {
+func (w *Wall) notifyAdd(p Photo) {
 	for _, o := range w.listenersAdd {
 		go o(p)
 	}
 }
 
-func (w *Photowall) notifyRemove(p Photo) {
+func (w *Wall) notifyRemove(p Photo) {
 	for _, o := range w.listenersRemove {
 		go o(p)
 	}
 }
 
 // OnAdd registers an Observer which is called when a photo was added to the wall
-func (w *Photowall) OnAdd(o Observer) {
+func (w *Wall) OnAdd(o Observer) {
 	w.listenersAdd = append(w.listenersAdd, o)
 }
 
 // OnRemove registers an Observer which is called when a photo was removed to the wall
-func (w *Photowall) OnRemove(o Observer) {
+func (w *Wall) OnRemove(o Observer) {
 	w.listenersRemove = append(w.listenersRemove, o)
 }
 
 // Photos returns all photos on the wall
-func (w Photowall) Photos() Photos {
+func (w Wall) Photos() Photos {
 	w.mutexPhotos.RLock()
 	b := make([]Photo, len(w.photos))
 	copy(b, w.photos)
