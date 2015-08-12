@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"runtime"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -30,7 +31,10 @@ func main() {
 	pwall.SetProcessors([]wall.Processor{
 		wall.Importer(),
 	})
+	// Restore existing images using Importer Processor
 	restoreFromDirectory(pwall, filepath.Join(baseDir(), *storeDir))
+
+	// Set Production processors
 	pwall.SetProcessors([]wall.Processor{
 		wall.NewResizer(*argImgWidth, *argImgHeight),
 		wall.NewStore(filepath.Join(baseDir(), *storeDir)),
@@ -47,12 +51,22 @@ func restoreFromDirectory(wall wall.Photowall, path string) {
 		log.Printf("Error reading directory: %s", err)
 		return
 	}
+	wg := &sync.WaitGroup{}
+
 	for _, f := range files {
-		log.Printf("File: %s", f.Name())
 		if strings.ToLower(filepath.Ext(f.Name())) == ".jpg" {
 			fullpath := filepath.Join(path, f.Name())
-			log.Printf("Added file: %s", fullpath)
-			wall.AddPhotoFromFile(fullpath, time.Now())
+			wg.Add(1)
+			go func(path string) {
+				err := wall.AddPhotoFromFile(path, time.Now())
+				if err == nil {
+					log.Printf("Added file: %s", fullpath)
+				} else {
+					log.Printf("Error adding file %s: %s", fullpath, err)
+				}
+				wg.Done()
+			}(fullpath)
 		}
 	}
+	wg.Wait()
 }

@@ -1,6 +1,7 @@
 package wall
 
 import (
+	"log"
 	"sync"
 	"time"
 )
@@ -23,8 +24,8 @@ type Observer func(p Photo)
 
 // Photowall represents a wall of photos
 type Photowall interface {
-	AddPhotoFromFile(name string, createdAt time.Time)
-	AddPhoto(p Photo)
+	AddPhotoFromFile(name string, createdAt time.Time) error
+	AddPhoto(p Photo) error
 	RemovePhoto(photo Photo)
 	OnAdd(o Observer)
 	OnRemove(o Observer)
@@ -68,35 +69,36 @@ func (w *Wall) Processors() []Processor {
 }
 
 // AddPhotoFromFile adds a new photo to the wall
-func (w *Wall) AddPhotoFromFile(name string, createdAt time.Time) {
+func (w *Wall) AddPhotoFromFile(name string, createdAt time.Time) error {
 	p := NewPhoto(name, 0, 0, "", createdAt)
-	go w.process(p)
+	return w.process(p)
 }
 
 // AddPhoto adds a new photo to the wall
-func (w *Wall) AddPhoto(p Photo) {
-	go w.process(p)
+func (w *Wall) AddPhoto(p Photo) error {
+	return w.process(p)
 }
 
 func (w *Wall) storePhoto(p Photo) {
+	log.Printf("Store photo: %s", p.Name())
 	w.mutexPhotos.Lock()
 	w.photos = append(w.photos, p)
 	w.mutexPhotos.Unlock()
 	w.notifyAdd(p)
 }
 
-func (w *Wall) process(photo Photo) {
+func (w *Wall) process(photo Photo) error {
 	var err error
 	for _, p := range w.processors {
 		photo, err = p.Process(photo)
 		if err != nil {
-			// handle error
-			break
+			// TODO: handle error
+			return err
 		}
 	}
-	if err == nil {
-		w.storePhoto(photo)
-	}
+
+	w.storePhoto(photo)
+	return nil
 }
 
 // RemovePhoto removes a photo from the wall

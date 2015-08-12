@@ -52,7 +52,10 @@ func TestPhotowall(t *testing.T) {
 		t.Fatalf("Could not create test image: %s", err)
 	}
 	defer os.Remove(imgName)
-	w.AddPhotoFromFile(imgName, time.Now())
+	err = w.AddPhotoFromFile(imgName, time.Now())
+	if err != nil {
+		t.Errorf("Error adding photo: %s", err)
+	}
 
 	// Check processor
 	select {

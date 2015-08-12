@@ -26,7 +26,7 @@ func importProcess(p Photo) (Photo, error) {
 	if err != nil {
 		return nil, err
 	}
-	if format != "jpg" {
+	if format != "jpeg" {
 		return nil, errors.New("Not a valid jpeg")
 	}
 
