@@ -16,14 +16,12 @@ type Store struct {
 	namer  Namer
 }
 
-var defaultNamer Namer = NewDateNamer("2006-01-02_150405")
-
 // NewStore creates a new store processor
 func NewStore(directory string) *Store {
 	return &Store{
 		dir:    directory,
 		chsums: make(map[string]struct{}),
-		namer:  defaultNamer,
+		namer:  NewDateNamer("2006-01-02_150405"),
 	}
 }
 
