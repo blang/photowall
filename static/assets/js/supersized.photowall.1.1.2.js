@@ -133,7 +133,7 @@
 	}
 
     	//Determine where to pull images from
-	    var flickrURL =  '/api/wall';
+	    var flickrURL =  '/api/wall.json';
     	
 
 

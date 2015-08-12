@@ -57,16 +57,16 @@ func NewServer(wall wall.Photowall, staticDir string, storageDir string, maxSize
 	s.validExtensions = buildValidExtensions(validExtensions)
 
 	router := gin.Default()
-	router.LoadHTMLGlob(filepath.Join(staticDir, "/templates/*"))
 
 	router.Static("/imgs", storageDir)
 	router.Static("/assets", filepath.Join(staticDir, "/assets"))
 	router.StaticFile("/wall", filepath.Join(staticDir, "/wall.html"))
 	router.StaticFile("/admin", filepath.Join(staticDir, "/admin.html"))
 	router.StaticFile("/success", filepath.Join(staticDir, "/success.html"))
+	router.StaticFile("/error", filepath.Join(staticDir, "/error.html"))
 	router.StaticFile("/", filepath.Join(staticDir, "/upload.html"))
 	router.POST("/api/upload", s.handleUpload)
-	router.GET("/api/wall", s.handleAPIWall)
+	router.GET("/api/wall.json", s.handleAPIWall)
 	s.Engine = router
 	return s
 }
@@ -105,37 +105,41 @@ func (s Server) handleUpload(c *gin.Context) {
 	err := c.Request.ParseMultipartForm(1024)
 	if err != nil {
 		log.Printf("Could not get file from form: %s\n", err)
-		c.HTML(http.StatusInternalServerError, "error.tmpl", gin.H{})
+		http.Redirect(c.Writer, c.Request, "/error", http.StatusFound)
 		return
 	}
 	file, handler, err := c.Request.FormFile("pic")
 	if err != nil {
 		log.Printf("Could not get file from form: %s\n", err)
-		c.HTML(http.StatusInternalServerError, "error.tmpl", gin.H{})
+		http.Redirect(c.Writer, c.Request, "/error", http.StatusFound)
 		return
 	}
 	defer file.Close()
 	ext, ok := s.validExtension(handler.Filename)
 	if !ok {
 		log.Printf("Invalid file extension: %s", handler.Filename)
-		c.HTML(http.StatusInternalServerError, "error.tmpl", gin.H{})
+		http.Redirect(c.Writer, c.Request, "/error", http.StatusFound)
 		return
 	}
 	f, err := ioutil.TempFile("", ext)
 	if err != nil {
 		log.Printf("Could not create file: %s\n", err)
-		c.HTML(http.StatusInternalServerError, "error.tmpl", gin.H{})
+		http.Redirect(c.Writer, c.Request, "/error", http.StatusFound)
 		return
 	}
 	defer f.Close()
 	_, err = io.Copy(f, file)
 	if err != nil {
 		log.Printf("File error: %s\n", err)
-		c.HTML(http.StatusInternalServerError, "error.tmpl", gin.H{})
+		http.Redirect(c.Writer, c.Request, "/error", http.StatusFound)
 		return
 	}
 
-	s.wall.AddPhotoFromFile(f.Name(), time.Now())
+	err = s.wall.AddPhotoFromFile(f.Name(), time.Now())
+	if err != nil {
+		http.Redirect(c.Writer, c.Request, "/error", http.StatusFound)
+		return
+	}
 
 	http.Redirect(c.Writer, c.Request, "/success", http.StatusFound)
 }
