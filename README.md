@@ -31,6 +31,8 @@ By default the photowall listens on `127.0.0.1:8000` with following routes:
 - `/`: Upload new photos
 - `/wall`: View the photowall
 
+Also check the [GoDocs](http://godoc.org/github.com/blang/photowall/wall).
+
 License (MIT)
 -----
 
