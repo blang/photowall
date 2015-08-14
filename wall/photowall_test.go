@@ -25,26 +25,28 @@ func createTestImg() (string, error) {
 
 func TestPhotowall(t *testing.T) {
 	w := Create()
-	processor1Called := make(chan Photo, 1)
-	processor2Called := make(chan Photo, 1)
-	addCalled := make(chan Photo, 1)
-	removeCalled := make(chan Photo, 1)
+	var (
+		proc1        Photo
+		proc2        Photo
+		addCalled    Photo
+		removeCalled Photo
+	)
 	w.SetProcessors([]Processor{
 		ProcessorFunc(func(p Photo) (Photo, error) {
-			processor1Called <- p
+			proc1 = p
 			return p, nil
 		}),
 		ProcessorFunc(func(p Photo) (Photo, error) {
-			processor2Called <- p
+			proc2 = p
 			return p, nil
 		}),
 	})
 	w.OnAdd(Observer(func(p Photo) {
-		addCalled <- p
+		addCalled = p
 	}))
 
 	w.OnRemove(Observer(func(p Photo) {
-		removeCalled <- p
+		removeCalled = p
 	}))
 
 	imgName, err := createTestImg()
@@ -57,33 +59,18 @@ func TestPhotowall(t *testing.T) {
 		t.Errorf("Error adding photo: %s", err)
 	}
 
-	// Check processor
-	select {
-	case <-time.After(3 * time.Second):
-		t.Errorf("Processor1 was not called in time")
-	case p := <-processor1Called:
-		if p.Name() != imgName {
-			t.Errorf("Processor1 received wrong image: %s", p)
-		}
+	// Check processors
+	if p := proc1; p == nil || p.Name() != imgName {
+		t.Errorf("Processor1 received wrong image: %s", p)
 	}
 
-	select {
-	case <-time.After(3 * time.Second):
-		t.Errorf("Processor2 was not called in time")
-	case p := <-processor2Called:
-		if p.Name() != imgName {
-			t.Errorf("Processor2 received wrong image: %s", p)
-		}
+	if p := proc2; p == nil || p.Name() != imgName {
+		t.Errorf("Processor2 received wrong image: %s", p)
 	}
 
 	// Check add observer
-	select {
-	case <-time.After(3 * time.Second):
-		t.Errorf("Add was not called in time")
-	case p := <-addCalled:
-		if p.Name() != imgName {
-			t.Errorf("Add received wrong image: %s", p)
-		}
+	if p := addCalled; p == nil || p.Name() != imgName {
+		t.Errorf("Add received wrong image: %s", p)
 	}
 
 	// Check photos
@@ -94,13 +81,8 @@ func TestPhotowall(t *testing.T) {
 
 	w.RemovePhoto(photos[0])
 
-	select {
-	case <-time.After(3 * time.Second):
-		t.Errorf("Remove was not called in time")
-	case p := <-removeCalled:
-		if p.Name() != imgName {
-			t.Errorf("Remove received wrong image: %s", p)
-		}
+	if p := removeCalled; p == nil || p.Name() != imgName {
+		t.Errorf("Remove received wrong image: %s", p)
 	}
 
 	photos = w.Photos()

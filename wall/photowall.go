@@ -120,13 +120,13 @@ func (w *Wall) RemovePhoto(photo Photo) {
 
 func (w *Wall) notifyAdd(p Photo) {
 	for _, o := range w.listenersAdd {
-		go o(p)
+		o(p)
 	}
 }
 
 func (w *Wall) notifyRemove(p Photo) {
 	for _, o := range w.listenersRemove {
-		go o(p)
+		o(p)
 	}
 }
 
